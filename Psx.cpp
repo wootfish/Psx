@@ -24,39 +24,42 @@
 */
 #include "Psx.h"
 
-Psx::Psx()
-{
-}
+Psx::Psx() { /* what is this madness??? */ }
 
-byte Psx::shift(byte _dataOut)                          // Does the actual shifting, both in and out simultaneously
-{
+// Does the actual shifting, both in and out simultaneously 
+byte Psx::shift(byte _dataOut) {
     _temp = 0;
     _dataIn = 0;
 
-    for (_i = 0; _i <= 7; _i++)
-    {
-        if ( _dataOut & (1 << _i) ) digitalWrite(_cmndPin, HIGH);   // Writes out the _dataOut bits
-        else digitalWrite(_cmndPin, LOW);
+    /* _dataIn  == button presses received from controller 
+     * _dataOut == data sent to controller, ie button queries */
+
+
+    // for (_i = 0; _i <= 7; _i++) {
+    /* The following for loop is a single communication cycle for the PSX controller. */
+    for (_i = 7; _i >= 0; _i--) {
+        if ( _dataOut & (1 << _i) ) 
+            digitalWrite(_cmndPin, HIGH);   // Writes out the _dataOut bits
+        else 
+            digitalWrite(_cmndPin, LOW);
 
         digitalWrite(_clockPin, LOW);
-
         delayMicroseconds(_delay);
-
         _temp = digitalRead(_dataPin);                  // Reads the data pin
+
+        /* If _temp == HIGH then set the i'th bit in _dataIn */ 
         if (_temp)
-        {
-            _dataIn = _dataIn | (B10000000 >> _i);      // Shifts the read data into _dataIn
-        }
+            // _dataIn = _dataIn | (B10000000 >> _i);      // Shifts the read data into _dataIn
+            _dataIn = _dataIn | (1 << _i);      // Shifts the read data into _dataIn
 
         digitalWrite(_clockPin, HIGH);
         delayMicroseconds(_delay);
     }
+
     return _dataIn;
 }
 
-
-void Psx::setupPins(byte dataPin, byte cmndPin, byte attPin, byte clockPin, byte delay)
-{
+void Psx::setupPins(byte dataPin, byte cmndPin, byte attPin, byte clockPin, byte delay) {
     pinMode(dataPin, INPUT);
     digitalWrite(dataPin, HIGH);    // Turn on internal pull-up
     _dataPin = dataPin;
@@ -75,9 +78,7 @@ void Psx::setupPins(byte dataPin, byte cmndPin, byte attPin, byte clockPin, byte
     _delay = delay;
 }
 
-
-unsigned int Psx::read()
-{
+unsigned int Psx::read() {
     digitalWrite(_attPin, LOW);
 
     shift(0x01);
@@ -94,9 +95,7 @@ unsigned int Psx::read()
     return _dataOut;
 }
 
-
-unsigned int Psx::readRStick()
-{
+unsigned int Psx::readRStick() {
     digitalWrite(_attPin, LOW);
 
     shift(0x01); // some bs
@@ -115,21 +114,11 @@ unsigned int Psx::readRStick()
 
     _dataOut = (_data2 << 8) | _data1;
 
-    // this voodoo reverses the order of the first 16 bits
-    // (which should be the only ones set at all)
-    // this is necessary because the "shift" function reads data in the
-    // opposite endianness from how we want it
-    _dataOut = ((_dataOut & 0xFF00) >> 8) | ((_dataOut & 0x00FF) << 8); // swap the first & second halves
-    _dataOut = ((_dataOut & 0xF0F0) >> 4) | ((_dataOut & 0x0F0F) << 4); // swap adjacent groups of 4 bits
-    _dataOut = ((_dataOut & 0xCCCC) >> 2) | ((_dataOut & 0x3333) << 2); // swap adjacent groups of 2 bits
-    _dataOut = ((_dataOut & 0xAAAA) >> 1) | ((_dataOut & 0x5555) << 1); // swap adjacent bits
-
     return _dataOut;
 }
 
 
-unsigned int Psx::readLStick()
-{
+unsigned int Psx::readLStick() {
     digitalWrite(_attPin, LOW);
 
     shift(0x01); // some bs
@@ -150,15 +139,6 @@ unsigned int Psx::readLStick()
     digitalWrite(_attPin, HIGH); // telling the controller it can shut up now
 
     _dataOut = (_data2 << 8) | _data1;
-
-    // this voodoo reverses the order of the first 16 bits
-    // (which should be the only ones set at all)
-    // this is necessary because the "shift" function reads data in the
-    // opposite endianness from how we want it
-    _dataOut = ((_dataOut & 0xFF00) >> 8) | ((_dataOut & 0x00FF) << 8); // swap the first & second halves
-    _dataOut = ((_dataOut & 0xF0F0) >> 4) | ((_dataOut & 0x0F0F) << 4); // swap adjacent groups of 4 bits
-    _dataOut = ((_dataOut & 0xCCCC) >> 2) | ((_dataOut & 0x3333) << 2); // swap adjacent groups of 2 bits
-    _dataOut = ((_dataOut & 0xAAAA) >> 1) | ((_dataOut & 0x5555) << 1); // swap adjacent bits
 
     return _dataOut;
 }

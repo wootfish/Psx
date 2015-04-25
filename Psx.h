@@ -47,10 +47,11 @@
 #define psxL2       0x8000
 
 
-class Psx
-{
+class Psx {
     public:
         Psx();
+
+        /* WARNING: Potentially extremely broken. Will revisit soon. 4/24/2015 */
         void setupPins(byte , byte , byte , byte , byte );      // (Data Pin #, CMND Pin #, ATT Pin #, CLK Pin #, Delay)
                                                             // Delay is how long the clock goes without changing state
                                                             // in Microseconds. It can be lowered to increase response,
