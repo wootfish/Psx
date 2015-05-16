@@ -17,6 +17,7 @@
     INFORMATION:
     This is similar to Hardwired.ino in spirit, but it uses a Bluetooth
     connection between two Arduinos instead of one Arduino that's hardwired.
+    This is the code that should go on the controller arduino.
 
     The code here is based in large part on Hardwired.ino . The sections which
     deal with bluetooth also draw heavily on the information found at:
@@ -34,9 +35,14 @@
 #define RxD 6
 #define TxD 7
 
+#define FUDGE_LOWER 95
+#define FUDGE_UPPER 160
+
+#define BT_DELAY 50
+
 //#define PAIR_ID_VAL "0"
 #define PAIR_HW_ADDR = "aa:bb:cc:dd:ee:ff"
-#define BT_DELAY_TIME 500
+#define BT_DELAY_TIME 25
 
 Psx Psx;
 SoftwareSerial BT(RxD, TxD);
@@ -48,6 +54,9 @@ unsigned int RStickY = 0;
 unsigned int LStick  = 0;
 unsigned int LStickX = 0;
 unsigned int LStickY = 0;
+
+int leftServoVal = 0;
+int rightServoVal = 0;
 
 void setup() {
     Serial.begin(9600);
@@ -99,12 +108,51 @@ void setup() {
     clear_bt_buffer();
 
     delay(BT_DELAY);
-    bt_pair(PAIR_HW_ADDR);
-    delay(BT_DELAY*2);
+    while (bt_pair(PAIR_HW_ADDR) != 1);
+    delay(BT_DELAY * 2);
 }
 
 void loop() {
-    // TODO make this do loop stuff
+    LStick = Psx.readLStick();
+    RStick = Psx.readRStick();
+
+    LStickX = LStick >> 8;
+    LStickY = LStick & 0xFF;
+
+    RStickX = RStick >> 8;
+    RStickY = RStick & 0xFF;
+
+    // send: two 255 bytes, to mark transmission border
+    //delay(BT_DELAY_TIME);
+    //BT.write(255);
+    //delay(BT_DELAY_TIME);
+    //BT.write(255);
+
+    if ((FUDGE_LOWER < LStickY) && (LStickY < FUDGE_UPPER)) {
+        leftServoVal = 1500;
+    } else {
+        leftServoVal = 1245 + (2*LStickY);
+    }
+
+    if ((FUDGE_LOWER < RStickY) && (RStickY < FUDGE_UPPER)) {
+        rightServoVal = 1500;
+    } else {
+        rightServoVal = 1755 - (2*RStickY)
+    }
+
+    // sending the data
+    // order: LSBytes, MSBytes
+    // for example, 1500 = bx00000101 11011100 // so to send 1500 we send:
+    // 11011100 followed by 00000101
+    delay(BT_DELAY_TIME);
+    BT.write(leftServoVal >> 8);
+    delay(BT_DELAY_TIME);
+    BT.write(leftServoVal & 0xFF);
+
+    delay(BT_DELAY_TIME);
+    BT.write(rightServoVal >> 8);
+    delay(BT_DELAY_TIME);
+    BT.write(rightServoVal & 0xFF);
 }
 
 void clear_bt_buffer() {
