@@ -1,5 +1,6 @@
 /*  PSX Controller Decoder Library (Psx.cpp)
     Written by: Kevin Ahrendt June 22nd, 2008
+    Modified by: Scott Felch and Eli Sohl, throughout 2015
 
     Controller protocol implemented using Andrew J McCubbin's analysis.
     http://www.gamesx.com/controldata/psxcont/psxcont.htm
@@ -26,31 +27,32 @@
 
 Psx::Psx() { /* what is this madness??? */ }
 
-// Does the actual shifting, both in and out simultaneously 
+// Does the actual shifting, both in and out simultaneously
 byte Psx::shift(byte _dataOut) {
     _temp = 0;
     _dataIn = 0;
 
-    /* _dataIn  == button presses received from controller 
+    /* _dataIn  == button presses received from controller
      * _dataOut == data sent to controller, ie button queries */
 
 
     // for (_i = 0; _i <= 7; _i++) {
     /* The following for loop is a single communication cycle for the PSX controller. */
     for (_i = 7; _i >= 0; _i--) {
-        if ( _dataOut & (1 << _i) ) 
+        //if ( _dataOut & (1 << _i) )
+        if ( _dataOut & (B10000000 >> _i) )
             digitalWrite(_cmndPin, HIGH);   // Writes out the _dataOut bits
-        else 
+        else
             digitalWrite(_cmndPin, LOW);
 
         digitalWrite(_clockPin, LOW);
         delayMicroseconds(_delay);
-        _temp = digitalRead(_dataPin);                  // Reads the data pin
+        _temp = digitalRead(_dataPin);      // Reads the data pin
 
-        /* If _temp == HIGH then set the i'th bit in _dataIn */ 
+        /* If _temp == HIGH then set the i'th bit in _dataIn */
         if (_temp)
-            // _dataIn = _dataIn | (B10000000 >> _i);      // Shifts the read data into _dataIn
-            _dataIn = _dataIn | (1 << _i);      // Shifts the read data into _dataIn
+            _dataIn = _dataIn | (B10000000 >> _i);      // Shifts the read data into _dataIn
+            //_dataIn = _dataIn | (1 << _i);      // Shifts the read data into _dataIn
 
         digitalWrite(_clockPin, HIGH);
         delayMicroseconds(_delay);

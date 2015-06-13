@@ -74,7 +74,7 @@ class Psx {
         byte _clockPin;
 
         byte _delay;
-        byte _i;
+        char _i;
         boolean _temp;
         byte _dataIn;
 
